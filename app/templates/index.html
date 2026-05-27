@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Banana Shelf Life Analyser</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        header h1 {
+            font-size: 2em;
+            color: #fdd835;
+            letter-spacing: 2px;
+        }
+        header p { color: #888; margin-top: 6px; font-size: 0.95em; }
+        .container { max-width: 700px; margin: 30px auto; padding: 0 20px; }
+
+        /* Upload & Camera Tabs */
+        .tabs {
+            display: flex;
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #888;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: #fdd835;
+            color: #0f0f0f;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed #333;
+            border-radius: 16px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #1a1a1a;
+        }
+        .upload-area:hover { border-color: #fdd835; background: #1f1f1f; }
+        .upload-area .icon { font-size: 3em; margin-bottom: 10px; }
+        .upload-area p { color: #888; }
+
+        /* Camera */
+        #camera-section { display: none; }
+        video {
+            width: 100%;
+            border-radius: 16px;
+            background: #000;
+        }
+        #canvas { display: none; }
+
+        /* Preview */
+        #preview-section { display: none; margin-top: 20px; text-align: center; }
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 16px;
+            border: 2px solid #2a2a2a;
+        }
+
+        /* Analyze Button */
+        #analyze-btn {
+            display: none;
+            width: 100%;
+            margin-top: 16px;
+            padding: 16px;
+            background: linear-gradient(135deg, #fdd835, #f9a825);
+            color: #0f0f0f;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+        }
+        #analyze-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(253,216,53,0.3); }
+
+        /* Result Card */
+        #result { display: none; margin-top: 24px; }
+        .result-card {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid #2a2a2a;
+        }
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .result-emoji { font-size: 3em; }
+        .result-class {
+            font-size: 2em;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+        .shelf-life-box {
+            background: #111;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .shelf-label { color: #888; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
+        .shelf-value { font-size: 1.4em; font-weight: 700; color: #fdd835; }
+
+        /* Confidence Meter */
+        .confidence-section {
+            background: #111;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .confidence-header {
+            padding: 14px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .confidence-header:hover { background: #1a1a1a; }
+        .confidence-title { font-weight: 600; color: #ccc; }
+        .confidence-arrow { color: #fdd835; transition: transform 0.3s; font-size: 1.2em; }
+        .confidence-arrow.open { transform: rotate(180deg); }
+        .confidence-body { display: none; padding: 0 20px 16px; }
+        .confidence-body.open { display: block; }
+        .conf-bar-wrap { margin: 8px 0; }
+        .conf-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 4px;
+            text-transform: capitalize;
+        }
+        .conf-bar-bg {
+            background: #222;
+            border-radius: 20px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .conf-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 1s ease;
+        }
+
+        /* Suggestions */
+        .suggestions-section {
+            background: #111;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .suggestions-heading {
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fdd835;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #1e1e1e;
+            color: #ccc;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fdd835;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Camera button */
+        .cam-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #start-camera { background: #1e3a5f; color: #4fc3f7; }
+        #capture-btn { background: #fdd835; color: #0f0f0f; display: none; }
+        #stop-camera { background: #2a1a1a; color: #e57373; display: none; }
+
+        .loading { text-align: center; padding: 20px; color: #fdd835; font-size: 1.1em; display: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1> Banana Shelf Life Analyser</h1>
+        <p>Scan your banana to instantly check ripeness & shelf life</p>
+    </header>
+
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('upload')">📁 Upload Image</div>
+            <div class="tab" onclick="switchTab('camera')">📷 Live Camera</div>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="icon">📸</div>
+                <p>Click to upload a banana image</p>
+                <p style="font-size:0.8em; margin-top:6px; color:#555">JPG, PNG supported</p>
+                <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleUpload(event)">
+            </div>
+        </div>
+
+        <!-- Camera Section -->
+        <div id="camera-section">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <button class="cam-btn" id="start-camera" onclick="startCamera()">▶ Start Camera</button>
+            <button class="cam-btn" id="capture-btn" onclick="capturePhoto()">📷 Capture Photo</button>
+            <button class="cam-btn" id="stop-camera" onclick="stopCamera()">■ Stop Camera</button>
+        </div>
+
+        <!-- Preview -->
+        <div id="preview-section">
+            <img id="preview" alt="Banana preview">
+        </div>
+
+        <div class="loading" id="loading">🔍 Analyzing your banana...</div>
+        <button id="analyze-btn" onclick="analyze()">🔍 ANALYZE BANANA</button>
+
+        <!-- Result -->
+        <div id="result">
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="result-emoji" id="resultEmoji"></div>
+                    <div>
+                        <div class="result-class" id="resultClass"></div>
+                        <div style="color:#888; font-size:0.9em">Ripeness Stage</div>
+                    </div>
+                </div>
+
+                <div class="shelf-life-box">
+                    <div>
+                        <div class="shelf-label">Estimated Shelf Life</div>
+                        <div class="shelf-value" id="shelfValue"></div>
+                    </div>
+                    <div style="font-size:2em">⏱</div>
+                </div>
+
+                <!-- Collapsible Confidence Meter -->
+                <div class="confidence-section">
+                    <div class="confidence-header" onclick="toggleConfidence()">
+                        <span class="confidence-title">🎯 Confidence Breakdown</span>
+                        <span class="confidence-arrow" id="confArrow">▼</span>
+                    </div>
+                    <div class="confidence-body" id="confBody">
+                        <div class="conf-bar-wrap">
+                            <div class="conf-bar-label"><span>Unripe</span><span id="score-unripe">0%</span></div>
+                            <div class="conf-bar-bg"><div class="conf-bar-fill" id="bar-unripe" style="width:0%; background:#4fc3f7"></div></div>
+                        </div>
+                        <div class="conf-bar-wrap">
+                            <div class="conf-bar-label"><span>Ripe</span><span id="score-ripe">0%</span></div>
+                            <div class="conf-bar-bg"><div class="conf-bar-fill" id="bar-ripe" style="width:0%; background:#81c784"></div></div>
+                        </div>
+                        <div class="conf-bar-wrap">
+                            <div class="conf-bar-label"><span>Overripe</span><span id="score-overripe">0%</span></div>
+                            <div class="conf-bar-bg"><div class="conf-bar-fill" id="bar-overripe" style="width:0%; background:#ffb74d"></div></div>
+                        </div>
+                        <div class="conf-bar-wrap">
+                            <div class="conf-bar-label"><span>Rotten</span><span id="score-rotten">0%</span></div>
+                            <div class="conf-bar-bg"><div class="conf-bar-fill" id="bar-rotten" style="width:0%; background:#e57373"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggestions -->
+                <div class="suggestions-section" style="margin-top:16px">
+                    <div class="suggestions-heading">💡 Suggestions</div>
+                    <div id="suggestionsList"></div>
+                </div>
+
+                <!-- Storage Tips -->
+                <div class="suggestions-section" style="margin-top:16px">
+                    <div class="suggestions-heading">🌡️ Storage Tips</div>
+                    <div id="storageTipsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let capturedBlob = null;
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            if (tab === 'upload') {
+                document.getElementById('upload-section').style.display = 'block';
+                document.getElementById('camera-section').style.display = 'none';
+                stopCamera();
+            } else {
+                document.getElementById('upload-section').style.display = 'none';
+                document.getElementById('camera-section').style.display = 'block';
+            }
+            resetResult();
+        }
+
+        function handleUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            capturedBlob = file;
+            const preview = document.getElementById('preview');
+            preview.src = URL.createObjectURL(file);
+            document.getElementById('preview-section').style.display = 'block';
+            document.getElementById('analyze-btn').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('video').srcObject = stream;
+                document.getElementById('start-camera').style.display = 'none';
+                document.getElementById('capture-btn').style.display = 'block';
+                document.getElementById('stop-camera').style.display = 'block';
+            } catch(e) {
+                alert('Camera access denied or not available. Please use Upload instead.');
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            canvas.toBlob(blob => {
+                capturedBlob = blob;
+                const preview = document.getElementById('preview');
+                preview.src = URL.createObjectURL(blob);
+                document.getElementById('preview-section').style.display = 'block';
+                document.getElementById('analyze-btn').style.display = 'block';
+                document.getElementById('result').style.display = 'none';
+            }, 'image/jpeg');
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+            document.getElementById('start-camera').style.display = 'block';
+            document.getElementById('capture-btn').style.display = 'none';
+            document.getElementById('stop-camera').style.display = 'none';
+        }
+
+       async function analyze() {
+            if (!capturedBlob) return;
+            document.getElementById('analyze-btn').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', capturedBlob, 'banana.jpg');
+
+            const response = await fetch('/predict', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analyze-btn').style.display = 'block';
+
+            // Fill results
+            document.getElementById('resultEmoji').innerText = data.emoji;
+            document.getElementById('resultClass').innerText = data.class;
+            document.getElementById('resultClass').style.color = data.color;
+            document.getElementById('shelfValue').innerText = data.shelf_life;
+
+            // Confidence bars
+            const classes = ['unripe', 'ripe', 'overripe', 'rotten'];
+            classes.forEach(cls => {
+                const score = data.all_scores[cls] || 0;
+                document.getElementById(`score-${cls}`).innerText = score + '%';
+                document.getElementById(`bar-${cls}`).style.width = score + '%';
+            });
+
+            // Suggestions
+            const list = document.getElementById('suggestionsList');
+            list.innerHTML = data.suggestions.map(s =>
+                `<div class="suggestion-item"><div class="suggestion-dot"></div><div>${s}</div></div>`
+            ).join('');
+
+            // Storage tips
+            const tipsList = document.getElementById('storageTipsList');
+            tipsList.innerHTML = data.storage_tips.map(s =>
+                `<div class="suggestion-item"><div class="suggestion-dot"></div><div>${s}</div></div>`
+            ).join('');
+
+            // History log
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
+            const historyList = document.getElementById('historyList');
+            const noScans = historyList.querySelector('div[style]');
+            if (noScans) noScans.remove();
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                <div>
+                    <div class="history-class" style="color:${data.color}">${data.class}</div>
+                    <div class="history-meta">${data.shelf_life}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="color:#888">${timeStr}</div>
+                    <div style="color:#555">${data.confidence}% confident</div>
+                </div>`;
+            historyList.insertBefore(historyItem, historyList.firstChild);
+
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function toggleConfidence() {
+            const body = document.getElementById('confBody');
+            const arrow = document.getElementById('confArrow');
+            body.classList.toggle('open');
+            arrow.classList.toggle('open');
+        }
+
+        function resetResult() {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('preview-section').style.display = 'none';
+            document.getElementById('analyze-btn').style.display = 'none';
+            capturedBlob = null;
+        }
+        function toggleHistory() {
+            const panel = document.getElementById('historyPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+    <!-- Floating History Button -->
+<button id="historyBtn" onclick="toggleHistory()" style="
+    position:fixed; bottom:24px; right:24px;
+    background:#fdd835; color:#0f0f0f;
+    border:none; border-radius:50px;
+    padding:12px 20px; font-weight:700;
+    cursor:pointer; font-size:0.95em;
+    box-shadow: 0 4px 15px rgba(253,216,53,0.4);
+    z-index:999;">
+    📋 History
+</button>
+
+<!-- History Panel -->
+<div id="historyPanel" style="
+    display:none;
+    position:fixed; bottom:70px; right:24px;
+    background:#1a1a1a; border:1px solid #333;
+    border-radius:16px; padding:20px;
+    width:300px; max-height:350px;
+    overflow-y:auto; z-index:999;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+    <div class="suggestions-heading" style="margin-bottom:12px;">📋 Scan History</div>
+    <div id="historyList">
+        <div style="color:#555; font-size:0.9em; padding:8px 0;">No scans yet</div>
+    </div>
+</div>
+</body>
+</html>
